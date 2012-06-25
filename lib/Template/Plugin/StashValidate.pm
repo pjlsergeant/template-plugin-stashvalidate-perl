@@ -49,7 +49,10 @@ sub new {
 
     eval { validated_hash( [%check], %$params ) };
     if ( $@ ) {
-        die $class->error($@);
+        # If you're thinking "this is really weird", then yes, you're right.
+        # Scumbag Template::Toolkit.
+        $class->error( $@ );
+        die $class->error();
     }
     1;
 }
