@@ -2,7 +2,7 @@ package Template::Plugin::StashValidate;
 
 =head1 NAME
 
-Template::Plugin::StashValidate - Insist on minimum stash values
+Template::Plugin::StashValidate - MooseX::Params::Validate for template stash values
 
 =head1 DESCRIPTION
 
