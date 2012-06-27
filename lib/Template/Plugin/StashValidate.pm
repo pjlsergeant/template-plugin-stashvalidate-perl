@@ -77,7 +77,7 @@ sub new {
         $stash->set( $key, $returned{ $key } );
     }
 
-    1;
+    return 1;
 }
 
 =head1 AUTHOR
