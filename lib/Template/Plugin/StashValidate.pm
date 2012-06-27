@@ -11,7 +11,7 @@ Allows a template to validate specific hash keys via MooseX::Params::Validate
 =head1 SYNOPSIS
 
  [% USE StashValidate {
-    'advice_discrepant' => { 'isa' => 'ArrayRef | HashRef', 'optional' => 1 }
+    'advice_discrepant' => { 'isa' => 'ArrayRef | HashRef', 'optional' => 1 },
   } %]
 
 =head1 OVERVIEW
@@ -24,6 +24,10 @@ the stash for which you've specified an allowed value - other keys in the stash
 are ignored.
 
 B<In short, for options, see>: L<MooseX::Params::Validate>.
+
+L<MooseX::Params::Validate> supports both coerced values and default values -
+this means the value you put in might not be the value you get out again. This
+module supports that - the stash is updated with any changes returned.
 
 =cut
 
@@ -43,17 +47,36 @@ the documentation in L<Template::Plugin>.
 
 sub new {
     my ($class, $context, $params) = @_;
-    my %check = map {
-        $_ => ($context->stash->get( $_ ) || undef)
-    } keys %$params;
+    my $stash = $context->stash;
 
-    eval { validated_hash( [%check], %$params ) };
+    my %check;
+    {
+        # Template::Stash returns an empty string for undefined values. That's
+        # almost certainly NOT what we want here, so knock it out for this block
+        no warnings "redefine";
+        local *Template::Stash::undefined = sub { return undef; };
+
+        # Take only the values that were specified to be checked
+        %check = map {
+            my $key = $_;
+            my $value = $stash->get( $key );
+            defined $value ? ( $key => $value ) : ();
+        } keys %$params;
+    }
+
+    my %returned = eval { validated_hash( [%check], %$params ) };
     if ( $@ ) {
         # If you're thinking "this is really weird", then yes, you're right.
-        # Scumbag Template::Toolkit.
+        # Seems to be the right thing to do though.
         $class->error( $@ );
         die $class->error();
     }
+
+    # Update the values in the stash if they might have been changed
+    for my $key ( keys %returned ) {
+        $stash->set( $key, $returned{ $key } );
+    }
+
     1;
 }
 
